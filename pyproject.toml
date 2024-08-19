@@ -1,0 +1,18 @@
+[project]
+name = "ctdg"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+dependencies = [
+    "typing-extensions",
+    "requests",
+    "numpy",
+    "lightning>=2",
+    "entmax",
+]
+
+[project.scripts]
+ctdg = "ctdg.cli:main"
+
+[tool.uv]
+dev-dependencies = []

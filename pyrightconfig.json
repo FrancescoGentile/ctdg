@@ -1,0 +1,12 @@
+{
+    "typeCheckingMode": "strict",
+    "pythonVersion": "3.10",
+    "include": ["src"],
+    "venvPath": ".",
+    "venv": ".venv",
+    "reportUnknownMemberType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportMissingTypeStubs": "none",
+    
+}

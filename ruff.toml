@@ -1,0 +1,23 @@
+fix = true
+line-length = 88
+src = ["src"]
+target-version = "py310"
+
+[format]
+preview = true
+
+[lint]
+fixable = ["ALL"]
+select = ["ALL"]
+ignore = [
+    "ANN401",
+    "COM812",
+    "PGH003",
+    "PLR0913",
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+"configs/*.py" = ["D", "F401", "INP", "N814"]
