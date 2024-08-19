@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 dependencies = [
     "typing-extensions",
+    "h5py",
     "requests",
     "numpy",
     "lightning>=2",
