@@ -27,9 +27,10 @@ class DataLoader(torch.utils.data.DataLoader[int]):
         """
         self.events = events
 
-        count = events.dst_nodes[:, None] == events.dst_nodes  # (E, E)
-        counts = count.count_nonzero(dim=1).float()  # (E,)
-        self.counts = counts
+        # count how mnay times each destination node appears as destination
+        counts = torch.bincount(events.dst_nodes)
+        counts = counts[events.dst_nodes]
+        self.counts = counts.float()
 
         super().__init__(
             dataset=list(range(len(events))),  # type: ignore
