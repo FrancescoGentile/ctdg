@@ -3,13 +3,9 @@
 
 import random
 import warnings
-from typing import Any
 
 import numpy as np
 import torch
-from torch.optim.lr_scheduler import LRScheduler
-
-from ._lazy import LazyCall
 
 
 def seed_all(seed: int) -> None:
@@ -30,7 +26,7 @@ def seed_all(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
 
 
-def check_precision(precision: int | str) -> int | str:
+def check_precision(precision: int | str | None) -> int | str:
     """Checks if the specified precision is supported by the current device.
 
     Args:
@@ -41,6 +37,9 @@ def check_precision(precision: int | str) -> int | str:
         If the precision is supported, it is returned as is. Otherwise, the function
         returns the next best supported precision.
     """
+    if precision is None:
+        return "32-true"
+
     if (
         isinstance(precision, str)
         and precision.startswith("bf16")
@@ -54,17 +53,3 @@ def check_precision(precision: int | str) -> int | str:
         precision = precision.replace("bf16", "16")
 
     return precision
-
-
-def get_scheduler_hyperparameters(
-    cfg: LazyCall[LRScheduler] | dict[str, Any] | None,
-) -> None | dict[str, Any]:
-    """Gets the hyperparameters of the scheduler from the configuration."""
-    if cfg is None:
-        return None
-    if isinstance(cfg, LazyCall):
-        return cfg.to_dict()
-
-    cfg = cfg.copy()
-    scheduler = cfg.pop("scheduler")
-    return {"scheduler": scheduler.to_dict(), **cfg}

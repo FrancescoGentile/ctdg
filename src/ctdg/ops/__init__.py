@@ -5,7 +5,7 @@
 
 from ._coalesce import coalesce
 from ._entmax import entmax15, sparsemax
-from ._misc import cosine_similarity
+from ._misc import cosine_similarity, normalize
 from ._scatter import (
     scatter,
     scatter_argmax,
@@ -26,6 +26,7 @@ __all__ = [
     "sparsemax",
     # _misc
     "cosine_similarity",
+    "normalize",
     # _scatter
     "scatter",
     "scatter_argmax",
