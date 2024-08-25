@@ -128,6 +128,9 @@ class TGN(LightningModule):
         loss = self.criterion(pred, gold)
         self.log("val/loss", loss, batch_size=len(events))
 
+        if self.mode == "macro":
+            pred = pred.clamp(min=0.0)
+
         self.val_metrics.update(pred, gold)
         self.log_dict(self.val_metrics, batch_size=len(events))
 
@@ -144,6 +147,9 @@ class TGN(LightningModule):
 
         loss = self.criterion(pred, gold)
         self.log("test/loss", loss, batch_size=len(events))
+
+        if self.mode == "macro":
+            pred = pred.clamp(min=0.0)
 
         self.test_metrics.update(pred, gold)
         self.log_dict(self.test_metrics, batch_size=len(events))
