@@ -6,13 +6,13 @@
 from ._dataloader import DataLoader
 from ._datamodule import DataModule
 from ._dataset import Dataset
-from ._foster import FOSTERDataset
+from ._forest import FORESTDataset
 from ._infvae import InfVAEDataset
 
 __all__ = [
     "DataLoader",
     "DataModule",
     "Dataset",
-    "FOSTERDataset",
+    "FORESTDataset",
     "InfVAEDataset",
 ]

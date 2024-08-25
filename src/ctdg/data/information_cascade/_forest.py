@@ -15,8 +15,8 @@ from ctdg.data import Events
 from ctdg.typing import PathLike
 
 
-class FOSTERDataset:
-    """Datasets from the FOSTER paper."""
+class FORESTDataset:
+    """Datasets from the FOREST paper."""
 
     def __init__(
         self,
