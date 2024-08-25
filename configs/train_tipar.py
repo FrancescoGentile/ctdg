@@ -1,0 +1,47 @@
+# Copyright 2024 Francesco Gentile.
+# SPDX-License-Identifier: Apache-2.0
+
+from lightning import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.loggers import WandbLogger
+from torch.optim import AdamW
+
+from ctdg.utils import LazyCall as L
+
+from .datasets.jodie import get_dataset
+from .models.tipar import get_model
+
+seed = 0
+
+dataset, nodes_dim, events_dim = get_dataset("wikipedia")
+model = get_model(nodes_dim, events_dim)
+
+data = {
+    "dataset": dataset,
+    "train_batch_size": 200,
+    "val_batch_size": 200,
+    "test_batch_size": 200,
+}
+
+rewiring_p = 0.2
+rewiring_every_n_steps = 10
+
+optimizer = L(AdamW)(lr=1e-4)
+
+trainer = L(Trainer)(
+    accelerator="auto",
+    devices=1,
+    precision="bf16-mixed",
+    logger=[L(WandbLogger)(project="ctdg")],
+    callbacks=[
+        L(ModelCheckpoint)(
+            every_n_epochs=1,
+            save_last=True,
+            save_top_k=3,
+            monitor="val/average_precision",
+            mode="max",
+        ),
+    ],
+    max_epochs=100,
+    log_every_n_steps=10,
+)
