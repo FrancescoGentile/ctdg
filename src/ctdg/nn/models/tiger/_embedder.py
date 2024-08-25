@@ -223,7 +223,7 @@ class GraphAttentionLayer(Module):
         if kv_event is not None:
             kv = torch.cat([kv, kv_time, kv_event], dim=-1)  # (N, K, Dk + Dt + De)
         else:
-            kv = torch.cat([kv, kv_time], dim=-1)  # (N, K, Dk + Dt)
+            kv = torch.cat([kv, kv_time], dim=-1)
 
         # PyTorch nn.MultiheadAttention follows the opposite convention for the
         # mask: a value of `True` indicates that the key-value pair is invalid

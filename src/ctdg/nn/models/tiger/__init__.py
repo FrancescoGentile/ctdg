@@ -1,7 +1,7 @@
 # Copyright 2024 Francesco Gentile.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Module for the Temporal Graph Network (TGN) model."""
+"""Module for the Temporal Interaction Graph Embedding with Restarts (TIGER) model."""
 
 from ._embedder import (
     Embedder,
@@ -17,8 +17,8 @@ from ._message import (
     MessageAggregator,
     MessageFunction,
 )
-from ._model import TGN
-from ._records import GraphState
+from ._model import TIGER
+from ._records import GraphState, RawMessages
 
 __all__ = [
     # _embedder
@@ -33,8 +33,9 @@ __all__ = [
     "MeanMessageAggregator",
     "MessageAggregator",
     "MessageFunction",
+    # _model
+    "TIGER",
     # _records
     "GraphState",
-    # _tgn
-    "TGN",
+    "RawMessages",
 ]

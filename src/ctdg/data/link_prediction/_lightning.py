@@ -7,11 +7,11 @@ import torch
 from lightning import LightningDataModule
 from typing_extensions import override
 
-from ctdg.structures import Events
+from ctdg.data import Events
 from ctdg.utils import LazyCall
 
+from ._dataloader import DataLoader
 from ._dataset import Dataset
-from ._loader import DataLoader
 
 
 class DataModule(LightningDataModule):

@@ -15,7 +15,7 @@ import requests
 import torch
 from torch import Tensor
 
-from ctdg.structures import Events
+from ctdg.data import Events
 from ctdg.typing import PathLike
 
 from ._records import Data, Splits
@@ -73,6 +73,11 @@ class Dataset(abc.ABC):
     # ----------------------------------------------------------------------- #
     # Public properties
     # ----------------------------------------------------------------------- #
+
+    @property
+    def num_nodes(self) -> int:
+        """Gets the number of nodes."""
+        return self._data.node_features.shape[0]
 
     @property
     def nodes_features(self) -> Annotated[Tensor, "N D", torch.float32]:

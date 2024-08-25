@@ -8,31 +8,27 @@ from torch import Tensor
 from typing_extensions import override
 
 from ctdg import ops
-from ctdg.data import Events
 from ctdg.nn import Module, TimeEncoder
 
-from ._records import GraphState
+from ._records import GraphState, RawMessages
 
 # --------------------------------------------------------------------------- #
-# Message Function
+# MessageFunction
 # --------------------------------------------------------------------------- #
 
 
 class MessageFunction(Protocol):
     """Interface for message functions."""
 
-    def __call__(self, state: GraphState, events: Events) -> Tensor:
-        """Computes the messages for the given events.
-
-        This method should compute the messages to be sent to the source nodes
-        of the given events.
+    def __call__(self, state: GraphState, msg: RawMessages) -> Tensor:
+        """Computes the messages for the source nodes.
 
         Args:
             state: The current state of the graph.
-            events: The events for which to compute the messages.
+            msg: The raw messages to process.
 
         Returns:
-            The messages for the given events.
+            The processed messages.
         """
         ...
 
@@ -46,22 +42,20 @@ class IdentityMessageFunction(Module, MessageFunction):
         self.time_encoder = time_encoder
 
     @override
-    def __call__(self, state: GraphState, events: Events) -> Tensor:
-        src_memory, src_last_update = state.memory[events.src_nodes]
-        dst_memory, _ = state.memory[events.dst_nodes]
-        delta_t = self.time_encoder(events.timestamps - src_last_update)
-
+    def __call__(self, state: GraphState, msg: RawMessages) -> Tensor:
+        last_update = state.memory.last_update[msg.src_nodes]
+        delta_t = self.time_encoder(msg.timestamps - last_update)
         if state.events_features is not None:
-            e_features = state.events_features[events.indices]
-            features = [src_memory, dst_memory, delta_t, e_features]
+            e_features = state.events_features[msg.indices]
+            features = [msg.src_embeds, msg.dst_embeds, delta_t, e_features]
         else:
-            features = [src_memory, dst_memory, delta_t]
+            features = [msg.src_embeds, msg.dst_embeds, delta_t]
 
         return torch.cat(features, dim=-1)
 
 
 # --------------------------------------------------------------------------- #
-# Message Aggregator
+# MessageAggregator
 # --------------------------------------------------------------------------- #
 
 

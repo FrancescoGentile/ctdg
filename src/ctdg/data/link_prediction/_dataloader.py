@@ -4,7 +4,7 @@
 import torch
 import torch.utils.data
 
-from ctdg.structures import Events
+from ctdg.data import Events
 
 
 class DataLoader(torch.utils.data.DataLoader[int]):
@@ -51,6 +51,10 @@ class DataLoader(torch.utils.data.DataLoader[int]):
             drop_last=False,
             collate_fn=self._collate_fn,
         )
+
+    # ----------------------------------------------------------------------- #
+    # Private methods
+    # ----------------------------------------------------------------------- #
 
     def _collate_fn(self, batch: list[int]) -> tuple[Events, Events]:
         pos_events = self.events[batch]

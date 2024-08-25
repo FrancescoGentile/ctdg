@@ -4,8 +4,8 @@
 from torch import nn
 
 from ctdg.nn import TimeEncoder
-from ctdg.nn.models.tgn import (
-    TGN,
+from ctdg.nn.models.tiger import (
+    TIGER,
     GraphAttentionEmbedder,
     GraphAttentionLayer,
     IdentityMessageFunction,
@@ -14,8 +14,8 @@ from ctdg.nn.models.tgn import (
 from ctdg.utils import LazyCall as L
 
 
-def get_model(nodes_dim: int, events_dim: int) -> L[TGN]:
-    """Returns the TGN model."""
+def get_model(nodes_dim: int, events_dim: int) -> L[TIGER]:
+    """Returns the TIGER model."""
     dim = nodes_dim if nodes_dim > 0 else 128
     # The message dimension is the sum of the source, destination, and time dimensions
     # plus the event dimension.
@@ -23,11 +23,11 @@ def get_model(nodes_dim: int, events_dim: int) -> L[TGN]:
 
     time_encoder = L(TimeEncoder, cache=True)(dim)
 
-    return L(TGN)(
+    return L(TIGER)(
         memory_dim=dim,
         memory_updater=L(nn.GRUCell)(message_dim, dim),
-        s_message_function=L(IdentityMessageFunction)(time_encoder),
-        d_message_function=L(IdentityMessageFunction)(time_encoder),
+        src_message_function=L(IdentityMessageFunction)(time_encoder),
+        dst_message_function=L(IdentityMessageFunction)(time_encoder),
         message_aggregator=L(LastMessageAggregator)(),
         embedder=L(GraphAttentionEmbedder)(
             layer=L(GraphAttentionLayer)(

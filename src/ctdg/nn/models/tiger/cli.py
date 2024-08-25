@@ -1,7 +1,7 @@
 # Copyright 2024 Francesco Gentile.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Command line interface for the TGN model."""
+"""Command line interface for the TIGER model."""
 
 import argparse
 
@@ -11,8 +11,8 @@ from . import information_cascade, link_prediction
 
 
 def init_parser(parser: argparse.ArgumentParser) -> None:
-    """Initializes the parser for the TGN model."""
-    parser.description = "Temporal Graph Network (TGN) model"
+    """Initializes the parser for the TIGER model."""
+    parser.description = "Temporal Interaction Graph Embedding with Restarts"
     parser.add_argument(
         "--task",
         type=str,
@@ -48,7 +48,7 @@ def init_parser(parser: argparse.ArgumentParser) -> None:
 
 
 def main(args: argparse.Namespace) -> None:
-    """Main function for the TGN model."""
+    """Main function for the TIGER model."""
     config = utils.load_config(args.config)
     match args.phase, args.task:
         case "train", "link-prediction":

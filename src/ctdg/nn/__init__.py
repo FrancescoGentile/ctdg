@@ -5,10 +5,10 @@
 
 from ._embeddings import TimeEncoder
 from ._memory import Memory, MemoryUpdater
-from ._misc import StaticInfo
 from ._mlp import MLP
 from ._module import Module
-from ._store import EventStore
+from ._neighbor import LastNeighborSampler, Neighborhood, NeighborSampler
+from ._store import StreamStore
 
 __all__ = [
     # _embeddings
@@ -16,12 +16,14 @@ __all__ = [
     # _memory
     "Memory",
     "MemoryUpdater",
-    # _misc
-    "StaticInfo",
     # _mlp
     "MLP",
     # _module
     "Module",
+    # _neighbor
+    "LastNeighborSampler",
+    "Neighborhood",
+    "NeighborSampler",
     # _store
-    "EventStore",
+    "StreamStore",
 ]

@@ -8,10 +8,14 @@ from torch.optim import AdamW
 
 from ctdg.utils import LazyCall as L
 
-from .datasets.jodie import dataset
-from .models.connect import model  # type: ignore
+from .datasets.infvae import get_dataset
+from .models.tiger import get_model
 
-seed = 42
+seed = 0
+
+dataset, nodes_dim, events_dim = get_dataset("android")
+
+model = get_model(nodes_dim, events_dim)
 
 data = {
     "dataset": dataset,
@@ -19,9 +23,6 @@ data = {
     "val_batch_size": 200,
     "test_batch_size": 200,
 }
-
-community_detection_p = 0.2
-community_detection_every_n_steps = 10
 
 optimizer = L(AdamW)(lr=1e-4)
 
@@ -35,8 +36,8 @@ trainer = L(Trainer)(
             every_n_epochs=1,
             save_last=True,
             save_top_k=3,
-            monitor="val/average_precision",
-            mode="max",
+            monitor="val/msle",
+            mode="min",
         ),
     ],
     max_epochs=100,

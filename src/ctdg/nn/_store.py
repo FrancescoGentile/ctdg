@@ -1,20 +1,18 @@
 # Copyright 2024 Francesco Gentile.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Literal, TypeAlias
+from typing import Generic, Literal, TypeAlias, TypeVar
 
 import torch
 from torch import Tensor
 
-from ctdg.structures import Events
+from ctdg.data import Stream
+
+_T = TypeVar("_T", bound=Stream)
 
 
-class EventStore:
-    """A class to store events for each node.
-
-    This class can be used to store for each node the events it has been involved in
-    and retrieve them later.
-    """
+class StreamStore(Generic[_T]):
+    """A class to store streams for each node."""
 
     ConflictMode: TypeAlias = Literal["replace", "append", "error"]
     """Specifies the conflict resolution mode for storing events.
@@ -25,28 +23,24 @@ class EventStore:
       stored events.
     """
 
-    def __init__(
-        self,
-        num_nodes: int,
-        conflict_mode: ConflictMode = "append",
-    ) -> None:
+    def __init__(self, num_nodes: int, conflict_mode: ConflictMode = "append") -> None:
         """Initializes the event store.
 
         Args:
-            num_nodes: The number of nodes for which to store events.
-            conflict_mode: What to do if events are assigned to a node that already has
-                stored events.
+            num_nodes: The number of nodes for which to store stream.
+            conflict_mode: What to do if stream are assigned to a node that already has
+                stored stream.
         """
         self._num_nodes = num_nodes
-        self._conflict_mode: EventStore.ConflictMode = conflict_mode
-        self._store: list[Events | None] = [None] * num_nodes
+        self._conflict_mode: StreamStore.ConflictMode = conflict_mode
+        self._store: list[_T | None] = [None] * num_nodes
 
     def clear(self, idx: Tensor | None = None) -> None:
-        """Removes the events stored for the given nodes.
+        """Removes the stream stored for the given nodes.
 
         Args:
-            idx: The indices of the nodes for which to remove the stored events.
-                If `None`, all stored events are removed.
+            idx: The indices of the nodes for which to remove the stored stream.
+                If `None`, all stored stream are removed.
         """
         if idx is None:
             self._store = [None] * self._num_nodes
@@ -54,16 +48,16 @@ class EventStore:
             for i in idx.tolist():
                 self._store[i] = None
 
-    def store(self, idx: Tensor, events: Events) -> None:
-        """Stores the given events.
+    def store(self, idx: Tensor, streams: _T) -> None:
+        """Stores the given stream.
 
         Args:
-            idx: The indices of the nodes for which to store the events. This must be
-                a 1D tensor with the same length as `events`.
-            events: The events to store.
+            idx: The indices of the nodes for which to store the streams. This must be
+                a 1D tensor with the same length as `streams`.
+            streams: The streams to store.
         """
-        if len(idx) != len(events):
-            msg = "The number of indices must match the number of events."
+        if len(idx) != len(streams):
+            msg = "The number of indices must match the number of stream."
             raise ValueError(msg)
 
         n_id, perm = torch.sort(idx)
@@ -72,47 +66,47 @@ class EventStore:
             if self._store[i] is not None:
                 match self._conflict_mode:
                     case "replace":
-                        self._store[i] = events[c]
+                        self._store[i] = streams[c]
                     case "append":
-                        self._store[i] = Events.cat([self._store[i], events[c]])
+                        cls = self._store[i].__class__
+                        self._store[i] = cls.cat([self._store[i], streams[c]])
                     case "error":
-                        msg = f"Events already stored for node {i}."
+                        msg = f"Streams already stored for node {i}."
                         raise RuntimeError(msg)
             else:
-                self._store[i] = events[c]
+                self._store[i] = streams[c]
 
-    def retrieve(self, idx: Tensor, *, clear: bool = False) -> tuple[Tensor, Events]:
-        """Retrieves the stored events for the given nodes.
+    def retrieve(self, idx: Tensor, *, clear: bool = False) -> tuple[Tensor, _T] | None:
+        """Retrieves the stored stream for the given nodes.
 
         !!! note
 
-            The returned events that refer to the same node are contiguous and sorted
-            in the same order as they were stored. This means that globally the events
+            The returned stream that refer to the same node are contiguous and sorted
+            in the same order as they were stored. This means that globally the stream
             may not be sorted by timestamp.
 
         Args:
-            idx: The indices of the nodes for which to retrieve the stored events.
-            clear: Whether to remove the stored events after retrieving them.
+            idx: The indices of the nodes for which to retrieve the stored stream.
+            clear: Whether to remove the stored stream after retrieving them.
 
         Returns:
-            A tuple containing the indices of the nodes for which events were retrieved
-            and the retrieved events.
+            A tuple containing the indices of the nodes for which stream were retrieved
+            and the retrieved stream. If no stream were retrieved, `None` is returned.
         """
         idx_list: list[int] = idx.tolist()
-        events, indices = [], []
+        stream, indices = [], []
         for i in idx_list:
             data = self._store[i]
             if data is not None:
-                events.append(data)
+                stream.append(data)
                 idx = torch.full((len(data),), i, device=idx.device, dtype=idx.dtype)
                 indices.append(idx)
 
                 if clear:
                     self._store[i] = None
 
-        if len(events) == 0:
-            indices = torch.tensor([], device=idx.device, dtype=idx.dtype)
-            events = Events.empty(device=idx.device)
-            return indices, events
+        if len(stream) == 0:
+            return None
 
-        return torch.cat(indices), Events.cat(events)
+        cls = stream[0].__class__
+        return torch.cat(indices), cls.cat(stream)

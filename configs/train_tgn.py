@@ -8,10 +8,13 @@ from torch.optim import AdamW
 
 from ctdg.utils import LazyCall as L
 
-from .datasets.jodie import dataset
-from .models.tgn import model  # type: ignore
+from .datasets.infvae import get_dataset
+from .models.tgn import get_model
 
-seed = 42
+seed = 0
+
+dataset, nodes_dim, events_dim = get_dataset("android")
+model = get_model(nodes_dim, events_dim)
 
 data = {
     "dataset": dataset,
@@ -26,14 +29,14 @@ trainer = L(Trainer)(
     accelerator="auto",
     devices=1,
     precision="bf16-mixed",
-    logger=[L(WandbLogger)(project="ctdg")],
+    logger=[L(WandbLogger)(project="ctdg-cascade")],
     callbacks=[
         L(ModelCheckpoint)(
             every_n_epochs=1,
             save_last=True,
             save_top_k=3,
-            monitor="val/average_precision",
-            mode="max",
+            monitor="val/msle",
+            mode="min",
         ),
     ],
     max_epochs=100,

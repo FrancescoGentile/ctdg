@@ -1,12 +1,24 @@
 # Copyright 2024 Francesco Gentile.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Protocol
+from typing import Protocol, TypeAlias
 
 import torch
 from torch import Tensor
+from typing_extensions import override
 
-from ctdg.structures import Events
+from ctdg.data import Events
+
+Neighborhood: TypeAlias = tuple[Tensor, Tensor, Tensor, Tensor]
+"""A neighborhood of a node at a given time.
+
+This is a tuple of tensors with shape `(N, n_neighbors)` where `N` is the number of
+nodes for which the neighborhood was sampled and `n_neighbors` is the number of
+neighbors to sample. The tuple contains the indices of the neighbors, the timestamps
+of the interactions with the neighbors, the indices of the interactions with the
+neighbors, and a binary mask indicating which neighbors are valid (not all nodes may
+have `n_neighbors` neighbors at the given time).
+"""
 
 
 class NeighborSampler(Protocol):
@@ -16,12 +28,7 @@ class NeighborSampler(Protocol):
     node at a given time.
     """
 
-    def sample_before(
-        self,
-        idx: Tensor,
-        t: Tensor,
-        n_neighbors: int,
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+    def sample(self, idx: Tensor, t: Tensor, n_neighbors: int) -> Neighborhood:
         """Samples the temporal neighborhood of the given nodes up to the given time.
 
         Args:
@@ -33,11 +40,24 @@ class NeighborSampler(Protocol):
             n_neighbors: The number of neighbors to sample.
 
         Returns:
-            A tuple of tensors with shape `(N, n_neighbors)` containing the indices of
-            the neighbors, the timestamps of the interactions with the neighbors, the
-            indices of the interactions with the neighbors, and a binary mask indicating
-            which neighbors are valid (not all nodes may have `n_neighbors` neighbors
-            at the given time).
+            The sampled neighborhood of the nodes up to the given time.
+        """
+        ...
+
+    def last_interaction(
+        self, i: Tensor, j: Tensor, t: Tensor
+    ) -> tuple[Tensor, Tensor]:
+        """Finds the last interaction between two nodes up to the given time.
+
+        Args:
+            i: The indices of the first nodes.
+            j: The indices of the second nodes.
+            t: The time up to which to search for the last interaction.
+
+        Returns:
+            The timestamps and indices of the last interactions between the nodes. If
+            no interaction is found, the timestamp is set to `-1.0` and the index is set
+            to `-1`.
         """
         ...
 
@@ -73,12 +93,8 @@ class LastNeighborSampler(NeighborSampler):
 
         self.adj_list = [get_adjacency(i) for i in range(num_nodes)]
 
-    def sample_before(
-        self,
-        idx: Tensor,
-        t: Tensor,
-        n_neighbors: int,
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+    @override
+    def sample(self, idx: Tensor, t: Tensor, n_neighbors: int) -> Neighborhood:
         neighbors = torch.zeros(len(idx), n_neighbors, dtype=torch.long)
         timestamps = torch.zeros(len(idx), n_neighbors, dtype=t.dtype)
         e_idx = torch.zeros(len(idx), n_neighbors, dtype=torch.long)
@@ -100,4 +116,27 @@ class LastNeighborSampler(NeighborSampler):
             timestamps.to(t.device, non_blocking=True),
             e_idx.to(idx.device, non_blocking=True),
             mask.to(idx.device, non_blocking=True),
+        )
+
+    @override
+    def last_interaction(
+        self, i: Tensor, j: Tensor, t: Tensor
+    ) -> tuple[Tensor, Tensor]:
+        timestamps = torch.full_like(i, -1.0)
+        indices = torch.full_like(i, -1)
+
+        for k, (src, dst, time) in enumerate(
+            zip(i.tolist(), j.tolist(), t.tolist(), strict=True)
+        ):
+            n, n_t, n_i = self.adj_list[src]
+
+            mask = (n == dst) & (n_t < time)
+            interactions = torch.nonzero(mask, as_tuple=True)[0]
+            if interactions.numel() > 0:
+                last = interactions[-1]
+                timestamps[k] = n_t[last]
+                indices[k] = n_i[last]
+
+        return timestamps.to(i.device, non_blocking=True), indices.to(
+            i.device, non_blocking=True
         )
