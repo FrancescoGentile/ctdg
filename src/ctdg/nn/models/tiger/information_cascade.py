@@ -133,6 +133,9 @@ class TIGER(LightningModule):
         loss = self.criterion(pred, gold)
         self.log("val/loss", loss, batch_size=len(events))
 
+        if self.mode == "macro":
+            pred = pred.clamp(min=0.0)
+
         self.val_metrics.update(pred, gold)
         self.log_dict(self.val_metrics, batch_size=len(events))
 
@@ -149,6 +152,9 @@ class TIGER(LightningModule):
 
         loss = self.criterion(pred, gold)
         self.log("test/loss", loss, batch_size=len(events))
+
+        if self.mode == "macro":
+            pred = pred.clamp(min=0.0)
 
         self.test_metrics.update(pred, gold)
         self.log_dict(self.test_metrics, batch_size=len(events))
@@ -214,4 +220,4 @@ def test(config: dict[str, Any], mode: Literal["micro", "macro"]) -> None:
     t_cfg["precision"] = utils.check_precision(t_cfg.get("precision"))
     trainer: Trainer = t_cfg.evaluate()
 
-    trainer.test(model, datamodule=data)
+    trainer.test(model, datamodule=data, ckpt_path=config["ckpt_path"])
