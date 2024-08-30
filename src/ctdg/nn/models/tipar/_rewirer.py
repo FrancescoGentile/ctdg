@@ -44,6 +44,7 @@ class HDBSCANRewirer(Rewirer):
 
     def __init__(
         self,
+        num_neighbors: int,
         metric: Literal["euclidean", "l2", "cosine"] = "euclidean",
         min_cluster_size: int = 5,
         min_samples: int | None = None,
@@ -51,6 +52,8 @@ class HDBSCANRewirer(Rewirer):
         """Initializes the HDBSCAN rewirer.
 
         Args:
+            num_neighbors: The maximum number of neighbors to set in the adjacency
+                matrix.
             metric: The metric to use to compute the distance between the nodes.
             min_cluster_size: The minimum number of nodes that a cluster should have.
             min_samples: The number of samples in a neighborhood for a point to be
@@ -63,6 +66,7 @@ class HDBSCANRewirer(Rewirer):
         # use this rewirer)
         from cuml.cluster import hdbscan
 
+        self._num_neighbors = num_neighbors
         self._metric = metric
         self.clusterer = hdbscan.HDBSCAN(
             min_cluster_size=min_cluster_size,
@@ -93,21 +97,18 @@ class HDBSCANRewirer(Rewirer):
             return torch.zeros(state.num_nodes, state.num_nodes, device=features.device)
 
         soft_clusters = torch.as_tensor(soft_clusters, device=features.device)
+        N, C = state.num_nodes, soft_clusters.size(1)  # noqa: N806
+        boundary_matrix = torch.zeros(
+            N, C, dtype=soft_clusters.dtype, device=soft_clusters.device
+        )
+        boundary_matrix[mask] = soft_clusters
 
-        adj = soft_clusters @ soft_clusters.t()  # (N', N')
-        # we need to sparsify the adjacency matrix, otherwise we would have
-        # a dense matrix with N^2 elements
-        adj = ops.sparsemax(adj, dim=1)  # (N, N)
+        adj = boundary_matrix @ boundary_matrix.t()  # (N', N')
+        scores, indices = adj.topk(self._num_neighbors, dim=1)
+        adj.fill_(0)
+        adj.scatter_(1, indices, scores)
 
-        # This is the adjacency matrix between the nodes that have been observed.
-        # We need to create the adjacency matrix of the entire network, by setting to
-        # 0 the connections between the nodes that have not been observed.
-        adj_full = torch.zeros(state.num_nodes, state.num_nodes, device=adj.device)
-        idx = torch.nonzero(mask).squeeze()
-        adj_full[idx, idx[:, None]] = adj
-        adj_full.fill_diagonal_(0)
-
-        return adj_full
+        return adj
 
 
 class SimilarityRewirer(Rewirer):

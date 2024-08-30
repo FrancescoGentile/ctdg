@@ -241,4 +241,4 @@ def test(config: dict[str, Any]) -> None:
     t_cfg["precision"] = utils.check_precision(t_cfg.get("precision"))
     trainer: Trainer = t_cfg.evaluate()
 
-    trainer.test(model, datamodule=data)
+    trainer.test(model, datamodule=data, ckpt_path=config["ckpt_path"])

@@ -117,9 +117,8 @@ class TIPAR(Module):
         """
         involved_nodes = [idx]
         neighborhoods = self.embedder.get_neighborhoods(self.graph, idx, t)
-        for temp, rewired in neighborhoods:
-            for n_idx, _, _, mask in [temp, rewired]:
-                involved_nodes.append(n_idx[mask])
+        for n_idx, _, _, mask in neighborhoods:
+            involved_nodes.append(n_idx[mask])
 
         involved_nodes = torch.cat(involved_nodes, dim=0)
         involved_nodes = torch.unique(involved_nodes)

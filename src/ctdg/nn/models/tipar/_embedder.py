@@ -27,7 +27,7 @@ class Embedder(Protocol):
         state: GraphState,
         idx: Tensor,
         t: Tensor,
-    ) -> list[tuple[Neighborhood, Neighborhood]]:
+    ) -> list[Neighborhood]:
         """Returns the neighborhoods needed to compute the embeddings."""
         ...
 
@@ -36,7 +36,7 @@ class Embedder(Protocol):
         state: GraphState,
         idx: Tensor,
         t: Tensor,
-        neighborhoods: list[tuple[Neighborhood, Neighborhood]],
+        neighborhoods: list[Neighborhood],
     ) -> Tensor:
         """Computes the embeddings of the nodes at the given times.
 
@@ -77,7 +77,7 @@ class IdentityEmbedder(Embedder):
         state: GraphState,
         idx: Tensor,
         t: Tensor,
-    ) -> list[tuple[Neighborhood, Neighborhood]]:
+    ) -> list[Neighborhood]:
         # no neighborhoods needed
         return []
 
@@ -87,7 +87,7 @@ class IdentityEmbedder(Embedder):
         state: GraphState,
         idx: Tensor,
         t: Tensor,
-        neighborhoods: list[tuple[Neighborhood, Neighborhood]],
+        neighborhoods: list[Neighborhood],
     ) -> Tensor:
         return state.memory[idx][0]
 
@@ -118,7 +118,7 @@ class TimeProjectionEmbedder(Module, Embedder):
         state: GraphState,
         idx: Tensor,
         t: Tensor,
-    ) -> list[tuple[Neighborhood, Neighborhood]]:
+    ) -> list[Neighborhood]:
         # no neighborhoods needed
         return []
 
@@ -128,7 +128,7 @@ class TimeProjectionEmbedder(Module, Embedder):
         state: GraphState,
         idx: Tensor,
         t: Tensor,
-        neighborhoods: list[tuple[Neighborhood, Neighborhood]],
+        neighborhoods: list[Neighborhood],
     ) -> Tensor:
         embeds, last_update = state.memory[idx]
         time_diff = t - last_update
@@ -268,31 +268,50 @@ class GraphAttentionEmbedder(Module, Embedder):
     def __init__(
         self,
         time_encoder: TimeEncoder,
-        temporal_layer: GraphAttentionLayer,
-        rewire_layer: GraphAttentionLayer,
+        temporal_layer: GraphAttentionLayer | None,
+        rewire_layer: GraphAttentionLayer | None,
         num_layers: int,
         num_neighbors: int,
+        *,
+        shared_layers: bool = False,
     ) -> None:
         super().__init__()
 
-        if temporal_layer.output_dim != rewire_layer.output_dim:
-            msg = "Temporal and rewire layers must have the same output dimension."
+        if temporal_layer is None and rewire_layer is None:
+            msg = "At least one of the temporal and rewire layers must be provided."
             raise ValueError(msg)
 
         self.num_layers = num_layers
         self.num_neighbors = num_neighbors
         self.time_encoder = time_encoder
 
-        self.t_layers = nn.ModuleList([
-            deepcopy(temporal_layer) for _ in range(num_layers)
-        ])
-        self.r_layers = nn.ModuleList([
-            deepcopy(rewire_layer) for _ in range(num_layers)
-        ])
+        if temporal_layer is not None:
+            self.t_layers = nn.ModuleList([
+                deepcopy(temporal_layer) for _ in range(num_layers)
+            ])
+        else:
+            self.t_layers = None
+
+        if rewire_layer is not None:
+            if shared_layers and self.t_layers is not None:
+                self.r_layers = self.t_layers
+            else:
+                self.r_layers = nn.ModuleList([
+                    deepcopy(rewire_layer) for _ in range(num_layers)
+                ])
+        else:
+            self.r_layers = None
 
     @property
     def output_dim(self) -> int:
-        return self.t_layers[-1].output_dim
+        if self.t_layers is not None:
+            return self.t_layers[-1].output_dim
+
+        if self.r_layers is not None:
+            return self.r_layers[-1].output_dim
+
+        msg = "No layers defined."
+        raise RuntimeError(msg)
 
     @override
     def get_neighborhoods(
@@ -300,11 +319,11 @@ class GraphAttentionEmbedder(Module, Embedder):
         state: GraphState,
         idx: Tensor,
         t: Tensor,
-    ) -> list[tuple[Neighborhood, Neighborhood]]:
+    ) -> list[Neighborhood]:
         temporal = self._get_temporal_neighborhoods(state, idx, t)
         rewired = self._get_rewire_neighborhoods(state, idx, t)
 
-        return list(zip(temporal, rewired, strict=True))
+        return temporal + rewired
 
     @override
     def __call__(
@@ -312,13 +331,21 @@ class GraphAttentionEmbedder(Module, Embedder):
         state: GraphState,
         idx: Tensor,
         t: Tensor,
-        neighborhoods: list[tuple[Neighborhood, Neighborhood]],
+        neighborhoods: list[Neighborhood],
     ) -> Tensor:
-        t_neighborhoods, r_neighborhoods = zip(*neighborhoods, strict=True)
-        t_embeds = self._compute_temporal(state, idx, t, t_neighborhoods, depth=0)
-        r_embeds = self._compute_rewire(state, idx, t, r_neighborhoods, depth=0)
+        if self.t_layers is not None:
+            t_neighborhoods = neighborhoods[: self.num_layers]
+            t_embeds = self._compute_temporal(state, idx, t, t_neighborhoods, depth=0)
+        else:
+            t_embeds = 0.0
 
-        return t_embeds + r_embeds
+        if self.r_layers is not None:
+            r_neighborhoods = neighborhoods[-self.num_layers :]
+            r_embeds = self._compute_rewire(state, idx, t, r_neighborhoods, depth=0)
+        else:
+            r_embeds = 0.0
+
+        return t_embeds + r_embeds  # type: ignore
 
     # ----------------------------------------------------------------------- #
     # Private Methods
@@ -370,7 +397,7 @@ class GraphAttentionEmbedder(Module, Embedder):
         else:
             kv_event = None
 
-        return self.t_layers[depth](q, q_time, kv, kv_time, kv_event, mask)
+        return self.t_layers[depth](q, q_time, kv, kv_time, kv_event, mask)  # type: ignore
 
     def _compute_rewire(
         self,
@@ -421,7 +448,7 @@ class GraphAttentionEmbedder(Module, Embedder):
         else:
             kv_event = None
 
-        return self.r_layers[depth](q, q_time, kv, kv_time, kv_event, mask)
+        return self.r_layers[depth](q, q_time, kv, kv_time, kv_event, mask)  # type: ignore
 
     def _get_temporal_neighborhoods(
         self, state: GraphState, idx: Tensor, t: Tensor

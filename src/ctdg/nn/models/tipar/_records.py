@@ -19,17 +19,6 @@ class RawMessages(Stream):
     timestamps: Tensor
     indices: Tensor
 
-    def __post_init__(self) -> None:
-        """Checks that the tensors have the same number of elements."""
-        if (
-            len(self.src_embeds)
-            != len(self.dst_embeds)
-            != len(self.timestamps)
-            != len(self.indices)
-        ):
-            msg = "All tensors must have the same number of elements."
-            raise ValueError(msg)
-
     @classmethod
     def from_events(cls, events: Events, s_embeds: Tensor, d_embeds: Tensor) -> Self:
         """Creates a new instance from the given events and embeddings."""

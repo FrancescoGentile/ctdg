@@ -134,7 +134,7 @@ class TIPAR(LightningModule):
 
     @override
     def validation_step(self, batch: tuple[Events, Tensor], batch_idx: int) -> None:
-        if batch_idx % self.rewiring_every_n_steps == 0:
+        if (batch_idx + 1) % self.rewiring_every_n_steps == 0:
             self.model.rewire_graph()
 
         events = batch[0]
@@ -143,6 +143,9 @@ class TIPAR(LightningModule):
 
         loss = self.criterion(pred, gold)
         self.log("val/loss", loss, batch_size=len(events))
+
+        if self.mode == "macro":
+            pred = pred.clamp(min=1)
 
         self.val_metrics.update(pred, gold)
         self.log_dict(self.val_metrics, batch_size=len(events))
@@ -154,7 +157,7 @@ class TIPAR(LightningModule):
 
     @override
     def test_step(self, batch: tuple[Events, Tensor], batch_idx: int) -> None:
-        if batch_idx % self.rewiring_every_n_steps == 0:
+        if (batch_idx + 1) % self.rewiring_every_n_steps == 0:
             self.model.rewire_graph()
 
         events = batch[0]
@@ -163,6 +166,9 @@ class TIPAR(LightningModule):
 
         loss = self.criterion(pred, gold)
         self.log("test/loss", loss, batch_size=len(events))
+
+        if self.mode == "macro":
+            pred = pred.clamp(min=1)
 
         self.test_metrics.update(pred, gold)
         self.log_dict(self.test_metrics, batch_size=len(events))
@@ -231,4 +237,4 @@ def test(config: dict[str, Any], mode: Literal["micro", "macro"]) -> None:
     t_cfg["precision"] = utils.check_precision(t_cfg.get("precision"))
     trainer: Trainer = t_cfg.evaluate()
 
-    trainer.test(model, datamodule=data)
+    trainer.test(model, datamodule=data, ckpt_path=config["ckpt_path"])
