@@ -53,15 +53,6 @@ class Events(Stream):
         order = self.timestamps.argsort(descending=descending)
         return self[order]
 
-    def repeat(self, n: int) -> Self:
-        """Repeats the stream of events."""
-        return self.__class__(
-            src_nodes=self.src_nodes.repeat(n),
-            dst_nodes=self.dst_nodes.repeat(n),
-            timestamps=self.timestamps.repeat(n),
-            indices=self.indices.repeat(n),
-        )
-
     # ----------------------------------------------------------------------- #
     # Magic methods
     # ----------------------------------------------------------------------- #

@@ -81,6 +81,12 @@ class Stream:
     # Public methods
     # ----------------------------------------------------------------------- #
 
+    def repeat(self, repeats: int) -> Self:
+        """Repeats the stream `repeats` times."""
+        annotations = inspect.get_annotations(self.__class__)
+        attributes = {attr: getattr(self, attr).repeat(repeats) for attr in annotations}
+        return self.__class__(**attributes)
+
     def to(self, device: str | torch.device, *, non_blocking: bool = False) -> Self:
         """Moves the stream to the specified device."""
         annotations = inspect.get_annotations(self.__class__)
