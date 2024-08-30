@@ -84,7 +84,12 @@ class Stream:
     def repeat(self, repeats: int) -> Self:
         """Repeats the stream `repeats` times."""
         annotations = inspect.get_annotations(self.__class__)
-        attributes = {attr: getattr(self, attr).repeat(repeats) for attr in annotations}
+        attributes = {}
+        for attr in annotations:
+            value = getattr(self, attr)
+            r = (repeats,) + (1,) * (value.dim() - 1)
+            attributes[attr] = value.repeat(r)
+
         return self.__class__(**attributes)
 
     def to(self, device: str | torch.device, *, non_blocking: bool = False) -> Self:
