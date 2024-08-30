@@ -4,10 +4,17 @@
 from ctdg.data.link_prediction import JODIEDataset
 from ctdg.utils import LazyCall as L
 
+_DIMS = {
+    "wikipedia": (0, 172),
+    "reddit": (0, 172),
+    "mooc": (0, 4),
+    "lastfm": (0, 4),
+}
+
 
 def get_dataset(name: str) -> tuple[L[JODIEDataset], int, int]:
     """Returns the dataset and the dimensions of the node and event features."""
-    if name != "wikipedia":
+    if name not in _DIMS:
         msg = f"Unknown dataset: {name}"
         raise ValueError(msg)
 
@@ -20,4 +27,6 @@ def get_dataset(name: str) -> tuple[L[JODIEDataset], int, int]:
         seed=2020,
     )
 
-    return dataset, 172, 172
+    nodes_dim, events_dim = _DIMS[name]
+
+    return dataset, nodes_dim, events_dim
