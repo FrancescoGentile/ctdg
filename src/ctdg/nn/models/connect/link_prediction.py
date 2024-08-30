@@ -27,8 +27,9 @@ class CONNECT(LightningModule):
 
     def __init__(
         self,
-        nodes_features: Tensor,
-        events_features: Tensor,
+        num_nodes: int,
+        nodes_features: Tensor | None,
+        events_features: Tensor | None,
         model: LazyCall[_CONNECT],
         rewiring_p: float = 0.1,
         rewiring_every_n_steps: int = 1,
@@ -46,8 +47,6 @@ class CONNECT(LightningModule):
 
         self._optimizer = optimizer
         self._scheduler = scheduler
-
-        num_nodes = nodes_features.size(0)
 
         self.model = model.evaluate(
             num_nodes=num_nodes,
@@ -187,6 +186,7 @@ def train(config: dict[str, Any]) -> None:
     data.setup("fit")
 
     model = CONNECT(
+        num_nodes=data.dataset.num_nodes,
         nodes_features=data.dataset.nodes_features,
         events_features=data.dataset.events_features,
         model=config["model"],
@@ -213,6 +213,7 @@ def test(config: dict[str, Any]) -> None:
     data.setup("test")
 
     model = CONNECT(
+        num_nodes=data.dataset.num_nodes,
         nodes_features=data.dataset.nodes_features,
         events_features=data.dataset.events_features,
         model=config["model"],

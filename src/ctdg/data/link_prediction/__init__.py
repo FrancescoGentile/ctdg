@@ -7,12 +7,10 @@ from ._dataloader import DataLoader
 from ._dataset import Dataset
 from ._jodie import JODIEDataset
 from ._lightning import DataModule
-from ._records import Data
 
 __all__ = [
     "DataLoader",
     "Dataset",
     "JODIEDataset",
     "DataModule",
-    "Data",
 ]

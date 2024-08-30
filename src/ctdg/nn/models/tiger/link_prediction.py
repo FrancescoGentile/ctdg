@@ -27,8 +27,9 @@ class TIGER(LightningModule):
 
     def __init__(
         self,
-        nodes_features: Tensor,
-        events_features: Tensor,
+        num_nodes: int,
+        nodes_features: Tensor | None,
+        events_features: Tensor | None,
         train_events: Events,
         full_events: Events,
         model: LazyCall[_TIGER],
@@ -47,7 +48,6 @@ class TIGER(LightningModule):
         self._optimizer = optimizer
         self._scheduler = scheduler
 
-        num_nodes = nodes_features.size(0)
         self.train_sampler = LastNeighborSampler(train_events, num_nodes)
         self.full_sampler = LastNeighborSampler(full_events, num_nodes)
 
@@ -186,6 +186,7 @@ def train(config: dict[str, Any]) -> None:
     data.setup("fit")
 
     model = TIGER(
+        num_nodes=data.dataset.num_nodes,
         nodes_features=data.dataset.nodes_features,
         events_features=data.dataset.events_features,
         train_events=data.dataset.train_events,
@@ -212,6 +213,7 @@ def test(config: dict[str, Any]) -> None:
     data.setup("test")
 
     model = TIGER(
+        num_nodes=data.dataset.num_nodes,
         nodes_features=data.dataset.nodes_features,
         events_features=data.dataset.events_features,
         train_events=data.dataset.train_events,
