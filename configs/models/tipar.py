@@ -16,8 +16,8 @@ from ctdg.utils import LazyCall as L
 
 
 def get_model(nodes_dim: int, events_dim: int) -> L[TIPAR]:
-    dim = nodes_dim if nodes_dim > 0 else 128
-    message_dim = 3 * nodes_dim + events_dim
+    dim = nodes_dim if nodes_dim > 0 else 172
+    message_dim = 3 * dim + events_dim
 
     time_encoder = L(TimeEncoder, cache=True)(dim)
 
@@ -42,6 +42,11 @@ def get_model(nodes_dim: int, events_dim: int) -> L[TIPAR]:
             rewire_layer=layer,
             num_layers=1,
             num_neighbors=10,
+            shared_layers=True,
         ),
-        rewirer=L(HDBSCANRewirer)(metric="cosine", min_cluster_size=10),
+        rewirer=L(HDBSCANRewirer)(
+            num_neighbors=10,
+            metric="cosine",
+            min_cluster_size=10,
+        ),
     )

@@ -16,7 +16,7 @@ from ctdg.utils import LazyCall as L
 
 def get_model(nodes_dim: int, events_dim: int) -> L[TIGER]:
     """Returns the TIGER model."""
-    dim = nodes_dim if nodes_dim > 0 else 128
+    dim = nodes_dim if nodes_dim > 0 else 172
     # The message dimension is the sum of the source, destination, and time dimensions
     # plus the event dimension.
     message_dim = 3 * dim + events_dim
