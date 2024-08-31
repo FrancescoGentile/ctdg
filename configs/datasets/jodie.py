@@ -8,7 +8,7 @@ _DIMS = {
     "wikipedia": (0, 172),
     "reddit": (0, 172),
     "mooc": (0, 4),
-    "lastfm": (0, 4),
+    "lastfm": (0, 0),
 }
 
 
