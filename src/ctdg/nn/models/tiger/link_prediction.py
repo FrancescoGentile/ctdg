@@ -52,6 +52,7 @@ class TIGER(LightningModule):
         self.full_sampler = LastNeighborSampler(full_events, num_nodes)
 
         self.model = model.evaluate(
+            num_nodes=num_nodes,
             nodes_features=nodes_features,
             events_features=events_features,
             neighbor_sampler=self.train_sampler,
