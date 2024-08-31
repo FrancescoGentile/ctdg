@@ -115,8 +115,8 @@ class GraphState(Module):
         self.incidence_matrix = incidence
 
         self.comms_memory = Memory(num_comms, self.comms_memory.dim, memory.device)
-        self.comms_memory.memory = memory
-        self.comms_memory.last_update = last_update
+        self.comms_memory.memory = memory.float()
+        self.comms_memory.last_update = last_update.float()
 
         self.comms_store = StreamStore[RawMessages](num_comms)
 
