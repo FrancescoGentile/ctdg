@@ -19,8 +19,8 @@ def get_dataset(name: str) -> tuple[L[JODIEDataset], int, int]:
         raise ValueError(msg)
 
     dataset = L(JODIEDataset)(
-        path="data/wikipedia",
-        name="Wikipedia",
+        path=f"data/{name}",
+        name=name,
         val_ratio=0.15,
         test_ratio=0.15,
         inductive_ratio=0.1,
